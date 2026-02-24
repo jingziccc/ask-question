@@ -41,12 +41,12 @@
 </head>
 <body class="bg-pink-50 h-screen w-screen relative flex items-center justify-center font-sans selection:bg-pink-200">
 
-    <!-- 返回（重置）按钮 -->
-    <a href="javascript:location.reload()" class="fixed top-4 left-4 text-gray-400 hover:text-gray-600 transition-colors z-50 p-2 bg-white/50 rounded-full backdrop-blur-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- 重置/返回按钮 -->
+    <button onclick="location.reload()" class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition-colors z-50 p-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-    </a>
+    </button>
 
     <!-- 主问题容器 -->
     <div id="question-container" class="text-center z-10 p-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-pink-100 max-w-sm w-full mx-4 transition-all duration-500">
