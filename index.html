@@ -12,6 +12,10 @@
             0% { transform: translateY(0px) scale(1); opacity: 1; }
             100% { transform: translateY(-100vh) scale(1.5); opacity: 0; }
         }
+        @keyframes drop {
+            0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
         .heart {
             position: fixed;
             bottom: -10%;
@@ -42,7 +46,7 @@
         <!-- 顶部可爱的图片/表情 -->
         <div id="emoji-display" class="text-6xl mb-4 transition-all duration-300 transform">🥺</div>
         
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-8">你爱我吗？</h1>
+        <h1 id="question-text" class="text-2xl md:text-3xl font-bold text-gray-800 mb-8 transition-all duration-300">你爱我吗？</h1>
         
         <!-- 按钮区域 -->
         <div class="flex flex-row items-center justify-center gap-4 relative h-16">
@@ -52,7 +56,7 @@
             </button>
             
             <!-- “不爱我”按钮 -->
-            <button id="btn-no" class="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-8 rounded-full shadow-md transition-all duration-200 text-lg w-32 absolute right-0 md:relative">
+            <button id="btn-no" class="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-8 rounded-full shadow-md transition-all duration-200 text-lg w-32">
                 不爱 💔
             </button>
         </div>
@@ -71,9 +75,13 @@
         const questionContainer = document.getElementById('question-container');
         const successContainer = document.getElementById('success-container');
         const emojiDisplay = document.getElementById('emoji-display');
+        const questionText = document.getElementById('question-text');
 
         // 表情阶段数组：初始 -> 疑惑 -> 难过 -> 哭泣 -> 愤怒
         const emojiStages = ['🥺', '❓', '😕', '😭', '😡'];
+        // 文字阶段数组
+        const textStages = ['你爱我吗？', '你是谁？', '再想想？', '不爱吗？', '真的不爱？'];
+
         let currentEmojiIndex = 0;
 
         // 记录按钮是否已经被移动过，如果是，则脱离正常的流布局
@@ -153,11 +161,46 @@
             // 切换表情：如果不愿意，那就一直变，直到很生气
             if (currentEmojiIndex < emojiStages.length - 1) {
                 currentEmojiIndex++;
+            } else {
+                // 如果已经是最生气的状态（点击超过4次），触发“投屎”特效
+                createPoops();
             }
             emojiDisplay.innerText = emojiStages[currentEmojiIndex];
+            questionText.innerText = textStages[currentEmojiIndex];
 
             moveButton();
         });
+
+        // 投屎特效
+        function createPoops() {
+            const poopIcons = ['💩'];
+            // 生成数量
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const poop = document.createElement('div');
+                    poop.classList.add('heart'); // 复用 heart 的基础样式
+                    poop.innerText = poopIcons[0];
+                    // 随机水平位置
+                    poop.style.left = Math.random() * 100 + 'vw';
+                    // 动画，这里可以复用 float，或者定义一个新的 drop 动画，暂时复用 float 但反向可能更好，简单点直接复用即可
+                    // 为了让屎看起来是从上往下掉，我们覆盖一下动画
+                    poop.style.animationName = 'drop'; 
+                    poop.style.animationDuration = (Math.random() * 2 + 1) + 's';
+                    poop.style.fontSize = (Math.random() * 2 + 1.5) + 'rem';
+                    poop.style.zIndex = '50'; // 保证在比较上层
+                    
+                    // 初始位置在顶部
+                    poop.style.top = '-10%';
+                    poop.style.bottom = 'auto'; // 清除 bottom
+
+                    document.body.appendChild(poop);
+                    
+                    setTimeout(() => {
+                        poop.remove();
+                    }, 3000);
+                }, i * 100);
+            }
+        }
 
         // 点击“爱我”按钮的逻辑
         btnYes.addEventListener('click', () => {
