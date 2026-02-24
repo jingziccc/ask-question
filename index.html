@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>一个小问题</title>
+    <!-- 引入 Tailwind CSS 用于快速美化页面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自定义一些动画效果 */
+        @keyframes float {
+            0% { transform: translateY(0px) scale(1); opacity: 1; }
+            100% { transform: translateY(-100vh) scale(1.5); opacity: 0; }
+        }
+        .heart {
+            position: fixed;
+            bottom: -10%;
+            font-size: 2rem;
+            animation: float 4s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bounce-in {
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* 防止页面滚动 */
+        body {
+            overflow: hidden;
+            touch-action: none; /* 防止手机端下拉刷新等原生行为 */
+        }
+    </style>
+</head>
+<body class="bg-pink-50 h-screen w-screen relative flex items-center justify-center font-sans selection:bg-pink-200">
+
+    <!-- 主问题容器 -->
+    <div id="question-container" class="text-center z-10 p-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-pink-100 max-w-sm w-full mx-4 transition-all duration-500">
+        <!-- 顶部可爱的图片/表情 -->
+        <div id="emoji-display" class="text-6xl mb-4 transition-all duration-300 transform">🥺</div>
+        
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-8">你爱我吗？</h1>
+        
+        <!-- 按钮区域 -->
+        <div class="flex flex-row items-center justify-center gap-4 relative h-16">
+            <!-- “爱我”按钮 -->
+            <button id="btn-yes" class="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-110 active:scale-95 text-lg w-32">
+                爱我 💖
+            </button>
+            
+            <!-- “不爱我”按钮 -->
+            <button id="btn-no" class="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-8 rounded-full shadow-md transition-all duration-200 text-lg w-32 absolute right-0 md:relative">
+                不爱 💔
+            </button>
+        </div>
+    </div>
+
+    <!-- 成功后的表白容器（默认隐藏） -->
+    <div id="success-container" class="hidden text-center z-10 p-6 flex-col items-center justify-center bounce-in">
+        <div class="text-8xl mb-4">🥰</div>
+        <h1 class="text-3xl md:text-4xl font-bold text-pink-600 mb-4">我也爱你！</h1>
+        <p class="text-lg text-gray-600 font-medium">就知道你会选这个，嘿嘿 ~ 💘</p>
+    </div>
+
+    <script>
+        const btnNo = document.getElementById('btn-no');
+        const btnYes = document.getElementById('btn-yes');
+        const questionContainer = document.getElementById('question-container');
+        const successContainer = document.getElementById('success-container');
+        const emojiDisplay = document.getElementById('emoji-display');
+
+        // 表情阶段数组：初始 -> 疑惑 -> 难过 -> 哭泣 -> 愤怒
+        const emojiStages = ['🥺', '❓', '😕', '😭', '😡'];
+        let currentEmojiIndex = 0;
+
+        // 记录按钮是否已经被移动过，如果是，则脱离正常的流布局
+        let isAbsolute = false;
+
+        // 移动“不爱我”按钮的逻辑
+        function moveButton() {
+            // 获取最新窗口可视宽高，兼容移动端浏览器不同的尺寸计算方式
+            const windowWidth = document.documentElement.clientWidth || window.innerWidth;
+            const windowHeight = document.documentElement.clientHeight || window.innerHeight;
+
+            if (!isAbsolute) {
+                // 关键修正：将按钮移动到 body 直接子级，避免受父容器 transform/relative 影响
+                // 否则 fixed 定位会变成相对于父容器，导致坐标计算错误飞出屏幕
+                document.body.appendChild(btnNo);
+
+                // 第一次触发时，将其改为 fixed 定位，方便全屏乱跑
+                btnNo.style.position = 'fixed';
+                // 确保层级最高，不会被白色卡片挡住导致无法点击
+                btnNo.style.zIndex = '9999';
+                btnNo.style.margin = '0'; // 去除外边距干扰
+                btnNo.style.transform = 'none'; // 去除动画变换干扰
+                
+                // 清除 Tailwind 原本 right-0 带来的影响
+                btnNo.style.right = 'auto'; 
+                btnNo.style.bottom = 'auto'; // 确保不被底部吸附
+                btnNo.style.left = 'auto';   // 清除可能存在的 left
+                btnNo.style.top = 'auto';    // 清除可能存在的 top
+                
+                isAbsolute = true;
+            }
+            
+            // 获取按钮本身的宽度和高度
+            // 使用 getBoundingClientRect 获取更精确的渲染尺寸（包括 transform 缩放后的视觉尺寸）
+            const rect = btnNo.getBoundingClientRect();
+            const btnWidth = rect.width || 128; 
+            const btnHeight = rect.height || 56;
+
+            // 安全边距，防止按钮太贴近屏幕边缘或进入刘海屏盲区
+            const safeMargin = 20;
+
+            // 计算最大的 X 和 Y 坐标（即可放置左上角的最大位置）
+            // 必须保证：左上角位置 + 按钮宽度 + 安全边距 < 屏幕宽度
+            const maxLeft = windowWidth - btnWidth - safeMargin;
+            const maxTop = windowHeight - btnHeight - safeMargin;
+
+            // 确范围有效（至少为 safeMargin）
+            const validMaxLeft = Math.max(safeMargin, maxLeft);
+            const validMaxTop = Math.max(safeMargin, maxTop);
+
+            // 生成随机坐标
+            // 范围：[safeMargin, validMaxLeft]
+            let randomX = Math.floor(Math.random() * (validMaxLeft - safeMargin + 1)) + safeMargin;
+            let randomY = Math.floor(Math.random() * (validMaxTop - safeMargin + 1)) + safeMargin;
+
+            // 双重保险：再次确保加上宽度后不溢出
+            if (randomX + btnWidth > windowWidth - safeMargin) {
+                randomX = windowWidth - btnWidth - safeMargin;
+            }
+            if (randomY + btnHeight > windowHeight - safeMargin) {
+                randomY = windowHeight - btnHeight - safeMargin;
+            }
+
+            // 最后的兜底：不能小于 safeMargin
+            randomX = Math.max(safeMargin, randomX);
+            randomY = Math.max(safeMargin, randomY);
+
+            // 应用新位置
+            btnNo.style.left = `${randomX}px`;
+            btnNo.style.top = `${randomY}px`;
+        }
+
+        // 修改为：只有真正点击后才会移动，并且每次点击都会继续移动
+        btnNo.addEventListener('click', (e) => {
+            e.preventDefault(); // 防止可能的默认行为
+
+            // 切换表情：如果不愿意，那就一直变，直到很生气
+            if (currentEmojiIndex < emojiStages.length - 1) {
+                currentEmojiIndex++;
+            }
+            emojiDisplay.innerText = emojiStages[currentEmojiIndex];
+
+            moveButton();
+        });
+
+        // 点击“爱我”按钮的逻辑
+        btnYes.addEventListener('click', () => {
+            // 隐藏问题，显示成功界面
+            questionContainer.classList.add('hidden');
+            successContainer.classList.remove('hidden');
+            successContainer.classList.add('flex');
+            
+            // 移除不爱按钮，防止它还在屏幕上飘
+            btnNo.style.display = 'none';
+
+            // 触发全屏撒爱心特效
+            createHearts();
+        });
+
+        // 满屏飘爱心特效
+        function createHearts() {
+            const heartIcons = ['❤️', '💖', '💘', '💕', '💗'];
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.classList.add('heart');
+                    // 随机选择一个爱心
+                    heart.innerText = heartIcons[Math.floor(Math.random() * heartIcons.length)];
+                    // 随机水平位置
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    // 随机动画持续时间，让错落有致
+                    heart.style.animationDuration = (Math.random() * 2 + 3) + 's';
+                    // 随机大小
+                    heart.style.fontSize = (Math.random() * 1.5 + 1) + 'rem';
+                    
+                    document.body.appendChild(heart);
+                    
+                    // 动画结束后清理 DOM 元素
+                    setTimeout(() => {
+                        heart.remove();
+                    }, 5000);
+                }, i * 150); // 每隔一小段时间生成一个，形成源源不断的效果
+            }
+        }
+    </script>
+</body>
+</html>
